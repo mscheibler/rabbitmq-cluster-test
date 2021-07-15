@@ -1,0 +1,21 @@
+## see https://docs.micronaut.io/2.1.1/guide/index.html#httpClient
+micronaut:
+  http:
+    services:
+      management:
+        url: http://localhost:${docker.receiver.8090:8090}
+        logger-name: io.kiwios.metric.receiver.Management
+
+## see https://micronaut-projects.github.io/micronaut-sql/latest/guide/#jdbc
+datasources:
+  default: null
+
+## RabbitMQ
+rabbitmq:
+  enabled: true
+  port: ${docker.rabbitmq.5672:5672}
+
+## InfluxDB
+influxdb:
+  port: ${docker.influxdb.8086:8086}
+  logLevel: FULL

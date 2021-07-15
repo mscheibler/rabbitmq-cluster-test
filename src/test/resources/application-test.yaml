@@ -1,0 +1,15 @@
+## see https://docs.micronaut.io/2.1.1/guide/index.html#providedEndpoints
+endpoints:
+  all:
+    port: ${random.port}
+
+## adjust logging
+logger:
+  levels:
+    io.kiwios: TRACE
+    io.micronaut.data: TRACE
+    org.flywaydb: INFO
+
+## disable RabbitMQ
+rabbitmq:
+  enabled: false
