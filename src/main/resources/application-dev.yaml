@@ -1,5 +1,0 @@
-## adjust logging
-logger:
-  levels:
-    com.kiwigrid: TRACE
-    io.kiwios: TRACE

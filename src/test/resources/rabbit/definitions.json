@@ -34,16 +34,7 @@
 	"policies": [],
 	"queues": [
 		{
-			"name": "metric.receiver.telemetry",
-			"vhost": "/",
-			"durable": true,
-			"auto_delete": false,
-			"arguments": {
-				"x-queue-type": "classic"
-			}
-		},
-		{
-			"name": "metric.receiver.event",
+			"name": "test-durable-queue",
 			"vhost": "/",
 			"durable": true,
 			"auto_delete": false,
@@ -54,16 +45,7 @@
 	],
 	"exchanges": [
 		{
-			"name": "io.kiwios.telemetry",
-			"vhost": "/",
-			"type": "fanout",
-			"durable": true,
-			"auto_delete": false,
-			"internal": false,
-			"arguments": {}
-		},
-		{
-			"name": "io.kiwios.event",
+			"name": "test-exchange",
 			"vhost": "/",
 			"type": "fanout",
 			"durable": true,
@@ -74,17 +56,9 @@
 	],
 	"bindings": [
 		{
-			"source": "io.kiwios.event",
+			"source": "test-exchange",
 			"vhost": "/",
-			"destination": "metric.receiver.event",
-			"destination_type": "queue",
-			"routing_key": "",
-			"arguments": {}
-		},
-		{
-			"source": "io.kiwios.telemetry",
-			"vhost": "/",
-			"destination": "metric.receiver.telemetry",
+			"destination": "test-durable-queue",
 			"destination_type": "queue",
 			"routing_key": "",
 			"arguments": {}

@@ -2,106 +2,46 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>com.kiwigrid.maven</groupId>
-		<artifactId>maven-parent</artifactId>
-		<version>3.4.0</version>
-	</parent>
-
 	<groupId>io.kiwios</groupId>
-	<artifactId>rabbit-mq-test</artifactId>
+	<artifactId>rabbitmq-cluster-test</artifactId>
 	<version>LOCAL-SNAPSHOT</version>
 
-	<licenses>
-		<license>
-			<name>Kiwigrid GmbH Software License 1.0</name>
-		</license>
-	</licenses>
-
-	<issueManagement>
-		<system>Jira</system>
-		<url>https://agile.kiwigrid.com</url>
-	</issueManagement>
-
 	<properties>
-
-		<!-- ===================================================================== -->
-		<!-- =============================== Build =============================== -->
-		<!-- ===================================================================== -->
-
-		<helm.chartVersion>0.0.1-LOCAL-${user.name}-SNAPSHOT</helm.chartVersion>
-		<dockerfile.repository.imageName>kiwios/metric-receiver</dockerfile.repository.imageName>
-
-		<docker.mysql>5.7</docker.mysql>
-		<docker.postgres>9.6</docker.postgres>
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
 
 		<!-- ===================================================================== -->
 		<!-- ============================= Libaries ============================== -->
 		<!-- ===================================================================== -->
-
-		<version.com.kiwigrid.micronaut.library>2.5.4</version.com.kiwigrid.micronaut.library>
-		<version.io.kiwios.edge.oh.events>1.17.0</version.io.kiwios.edge.oh.events>
-		<version.io.kokuwa.micronaut.codegen>1.5.0</version.io.kokuwa.micronaut.codegen>
-		<version.io.kokuwa.micronaut.logging>0.0.3</version.io.kokuwa.micronaut.logging>
-		<version.io.micronaut>2.5.8</version.io.micronaut>
-		<version.io.micronaut.data>2.4.7</version.io.micronaut.data>
+		<version.org.projectlombok>1.18.20</version.org.projectlombok>
+		<version.org.junit.jupiter>5.7.2</version.org.junit.jupiter>
 		<version.org.awaitility>4.1.0</version.org.awaitility>
 		<version.org.testcontainers>1.15.3</version.org.testcontainers>
-
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
-
-			<!-- micronaut -->
 			<dependency>
-				<groupId>io.micronaut</groupId>
-				<artifactId>micronaut-bom</artifactId>
-				<version>${version.io.micronaut}</version>
-				<type>pom</type>
-				<scope>import</scope>
+			    <groupId>org.projectlombok</groupId>
+			    <artifactId>lombok</artifactId>
+			    <version>${version.org.projectlombok}</version>
 			</dependency>
-			<dependency>
-				<groupId>io.micronaut.data</groupId>
-				<artifactId>micronaut-data-processor</artifactId>
-				<version>${version.io.micronaut.data}</version>
-			</dependency>
-			<dependency>
-				<groupId>io.micronaut.data</groupId>
-				<artifactId>micronaut-data-jdbc</artifactId>
-				<version>${version.io.micronaut.data}</version>
-			</dependency>
-			<dependency>
-				<groupId>io.micronaut.data</groupId>
-				<artifactId>micronaut-data-runtime</artifactId>
-				<version>${version.io.micronaut.data}</version>
-			</dependency>
-			<dependency>
-				<groupId>io.micronaut.data</groupId>
-				<artifactId>micronaut-data-model</artifactId>
-				<version>${version.io.micronaut.data}</version>
-			</dependency>
-			<dependency>
-				<groupId>io.kokuwa.micronaut</groupId>
-				<artifactId>micronaut-logging</artifactId>
-				<version>${version.io.kokuwa.micronaut.logging}</version>
-			</dependency>
-
-			<!-- kiwigrid -->
-			<dependency>
-				<groupId>io.kiwios.edge.oh</groupId>
-				<artifactId>events</artifactId>
-				<version>${version.io.kiwios.edge.oh.events}</version>
-				<type>yaml</type>
-				<classifier>spec</classifier>
-			</dependency>
-			<dependency>
-				<groupId>com.kiwigrid.micronaut</groupId>
-				<artifactId>micronaut-influxdb</artifactId>
-				<version>${version.com.kiwigrid.micronaut.library}</version>
-			</dependency>
-
 			<!-- test -->
+			<dependency>
+			    <groupId>org.junit.jupiter</groupId>
+			    <artifactId>junit-jupiter-api</artifactId>
+			    <version>${version.org.junit.jupiter}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter-engine</artifactId>
+			    <version>${version.org.junit.jupiter}</version>
+			</dependency>
+			<dependency>
+			    <groupId>org.junit.jupiter</groupId>
+			    <artifactId>junit-jupiter-params</artifactId>
+			    <version>${version.org.junit.jupiter}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.awaitility</groupId>
 				<artifactId>awaitility</artifactId>
@@ -117,102 +57,36 @@
 				<artifactId>junit-jupiter</artifactId>
 				<version>${version.org.testcontainers}</version>
 			</dependency>
-
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
-
-		<!-- micronaut -->
 		<dependency>
-			<groupId>io.micronaut</groupId>
-			<artifactId>micronaut-http-server-netty</artifactId>
-			<scope>runtime</scope>
+		    <groupId>org.projectlombok</groupId>
+		    <artifactId>lombok</artifactId>
+		    <scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.micronaut.rabbitmq</groupId>
-			<artifactId>micronaut-rabbitmq</artifactId>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-simple</artifactId>
+		    <version>1.7.32</version>
+		    <scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.micronaut.cache</groupId>
-			<artifactId>micronaut-cache-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.micronaut.cache</groupId>
-			<artifactId>micronaut-cache-caffeine</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.micronaut.cache</groupId>
-			<artifactId>micronaut-cache-management</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.kokuwa.micronaut</groupId>
-			<artifactId>micronaut-logging</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.kiwigrid.micronaut</groupId>
-			<artifactId>micronaut-influxdb</artifactId>
-		</dependency>
-
-		<!-- persistence -->
-		<dependency>
-			<groupId>io.micronaut.data</groupId>
-			<artifactId>micronaut-data-jdbc</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.micronaut.sql</groupId>
-			<artifactId>micronaut-jdbc-hikari</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.micronaut.flyway</groupId>
-			<artifactId>micronaut-flyway</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-
-		<!-- monitoring -->
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.micronaut</groupId>
-			<artifactId>micronaut-management</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.micronaut.micrometer</groupId>
-			<artifactId>micronaut-micrometer-registry-prometheus</artifactId>
-			<scope>runtime</scope>
+		    <groupId>com.rabbitmq</groupId>
+		    <artifactId>amqp-client</artifactId>
+		    <version>5.13.0</version>
 		</dependency>
 
 		<!-- test -->
 		<dependency>
-			<groupId>io.micronaut.test</groupId>
-			<artifactId>micronaut-test-junit5</artifactId>
-			<scope>test</scope>
+		    <groupId>org.junit.jupiter</groupId>
+		    <artifactId>junit-jupiter-api</artifactId>
+		    <scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.micronaut</groupId>
-			<artifactId>micronaut-http-client</artifactId>
-			<scope>test</scope>
+		    <groupId>org.junit.jupiter</groupId>
+		    <artifactId>junit-jupiter-params</artifactId>
+		    <scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -234,7 +108,6 @@
 			<artifactId>junit-jupiter</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 
 	<build>
@@ -255,6 +128,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
 				<configuration>
 					<annotationProcessorPaths>
 						<path>
@@ -262,159 +136,32 @@
 							<artifactId>lombok</artifactId>
 							<version>${version.org.projectlombok}</version>
 						</path>
-						<path>
-							<groupId>io.micronaut</groupId>
-							<artifactId>micronaut-inject-java</artifactId>
-							<version>${version.io.micronaut}</version>
-						</path>
-						<path>
-							<groupId>io.micronaut.data</groupId>
-							<artifactId>micronaut-data-processor</artifactId>
-							<version>${version.io.micronaut.data}</version>
-						</path>
 					</annotationProcessorPaths>
 				</configuration>
-			</plugin>
-
-			<!-- configure jar with lib and main class -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>io.kiwios.metric.receiver.Application</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-
-			<!-- copy project dependencies -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>copy-dependencies</goal>
-						</goals>
-						<configuration>
-							<includeScope>runtime</includeScope>
-							<outputDirectory>${project.build.directory}/lib</outputDirectory>
-							<silent>true</silent>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<!-- copy docker/helm/compose -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-resources-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>copy-resources</goal>
-						</goals>
-						<configuration>
-							<resources>
-								<resource>
-									<directory>${project.basedir}/src/main/docker</directory>
-									<filtering>true</filtering>
-								</resource>
-								<resource>
-									<directory>${project.basedir}/src/test/compose</directory>
-									<filtering>true</filtering>
-									<targetPath>compose</targetPath>
-								</resource>
-							</resources>
-							<outputDirectory>${project.build.directory}</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 
 			<!-- run surefire tests with multiple configurations -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.2</version>
 				<executions>
 					<execution>
-						<id>default-test</id>
 						<goals>
 							<goal>test</goal>
 						</goals>
-						<configuration>
-							<reportNameSuffix>h2</reportNameSuffix>
-						</configuration>
 					</execution>
-					<!--execution>
-						<id>postgres-test</id>
-						<goals>
-							<goal>test</goal>
-						</goals>
-						<configuration>
-							<environmentVariables>
-								<MICRONAUT_ENVIRONMENTS>postgres</MICRONAUT_ENVIRONMENTS>
-							</environmentVariables>
-							<reportNameSuffix>postgres</reportNameSuffix>
-						</configuration>
-					</execution>
-					<execution>
-						<id>mysql-test</id>
-						<goals>
-							<goal>test</goal>
-						</goals>
-						<configuration>
-							<environmentVariables>
-								<MICRONAUT_ENVIRONMENTS>mysql</MICRONAUT_ENVIRONMENTS>
-							</environmentVariables>
-							<reportNameSuffix>mysql</reportNameSuffix>
-						</configuration>
-					</execution-->
 				</executions>
 				<configuration>
 					<failIfNoTests>true</failIfNoTests>
 				</configuration>
 			</plugin>
 
-			<!-- assembly grafana dashboards -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<!-- package docker -->
-			<plugin>
-				<groupId>com.spotify</groupId>
-				<artifactId>dockerfile-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>build</goal>
-							<goal>tag</goal>
-							<goal>push</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
 			<!-- integration tests -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.22.2</version>
 				<executions>
 					<execution>
 						<goals>
