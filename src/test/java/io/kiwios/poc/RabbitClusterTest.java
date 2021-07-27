@@ -38,12 +38,14 @@ import org.testcontainers.utility.DockerImageName;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.HealthCheck;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoverableChannel;
 import com.rabbitmq.client.RecoverableConnection;
 import com.rabbitmq.client.RecoveryListener;
 import com.rabbitmq.client.ShutdownSignalException;
@@ -143,7 +145,7 @@ public class RabbitClusterTest {
 	void testRestartAndConsumerRecovery(String connectedNode, String restartedNode, boolean withConsumerRecovery)
 			throws Exception {
 		con = createConnection(connectedNode);
-		addConsumer(con, withConsumerRecovery);
+		addConsumer(con, withConsumerRecovery, null);
 		Thread.sleep(Duration.ofSeconds(10).toMillis());
 
 		restartContainer(restartedNode);
@@ -175,7 +177,9 @@ public class RabbitClusterTest {
 	void testConsumerCancelationDoesNotTriggerConsumerRecovery() throws Exception {
 		con = createConnection(NODE2);
 		// setup with consumer recovery
-		Channel channel = addConsumer(con, true);
+		Channel channel = addConsumer(con, true, null);
+		assertTrue(channel instanceof RecoverableChannel,
+				"channel must be recoverable, was: " + channel.getClass().getName());
 		Thread.sleep(Duration.ofSeconds(10).toMillis());
 
 		// regular cancel of the consumer
@@ -185,6 +189,16 @@ public class RabbitClusterTest {
 		// sleep for some time to verify that the automatic recovery does not kick in on regularly canceled consumers
 		Thread.sleep(Duration.ofSeconds(10).toMillis());
 		assertEquals(cancelCounter, receiveCounter.get(), "no messages must be received after cancelation");
+	}
+
+	@Test
+	void testConsumerRecoveryAfterDeliveryAcknowledgementTimeout() throws Exception {
+		con = createConnection(NODE1);
+		addConsumer(con, true, 10);
+
+		Thread.sleep(Duration.ofMinutes(2).toMillis());
+
+		assertPublishConsumeCount();
 	}
 
 	private static void configureContainer(GenericContainer<?> mqContainer, String hostname, String nodeName) {
@@ -221,22 +235,56 @@ public class RabbitClusterTest {
 		assertTrue(abs(pub - con) <= 1, message);
 	}
 
-	private Channel addConsumer(Connection con, boolean withRecovery) throws IOException {
+	private Channel addConsumer(Connection con, boolean withRecovery, Integer provokeTimeoutOnMessageCount)
+			throws IOException {
 		Channel channel = con.createChannel();
-		channel.basicConsume(QUEUE, false, CONSUMER_TAG, false, false, Map.of(), new DefaultConsumer(channel) {
+		channel.basicQos(5);
+		DefaultConsumer consumer = new DefaultConsumer(channel) {
+			private boolean isDown = false;
+
 			@Override
 			public void handleDelivery(String consumerTag, Envelope envelope,
 					AMQP.BasicProperties properties, byte[] body) throws IOException {
-				long deliveryTag = envelope.getDeliveryTag();
-				log.info("received: {}", new String(body));
-				channel.basicAck(deliveryTag, false);
-				receiveCounter.incrementAndGet();
+				if (isDown) {
+					return;
+				}
+				log.info("{} received, channel open: {}, body: {}",
+						receiveCounter.get(), getChannel().isOpen(), new String(body));
+				try {
+					long deliveryTag = envelope.getDeliveryTag();
+					if (provokeTimeoutOnMessageCount != null
+							&& receiveCounter.get() % provokeTimeoutOnMessageCount == 0) {
+						try {
+							Thread.sleep(20000); // simulate long running message processing
+						} catch (InterruptedException e) {
+							// ignore
+						}
+					}
+					getChannel().basicAck(deliveryTag, false);
+					receiveCounter.incrementAndGet();
+				} catch (AlreadyClosedException e) {
+					log.warn("delegating AlreadyClosedException to handleShutdownSignal");
+					handleShutdownSignal(consumerTag, e);
+				}
 			}
 
 			@Override
-			public void handleShutdownSignal(String consumerTag,
-					ShutdownSignalException sig) {
+			public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
 				log.warn("handleShutdownSignal for {}", consumerTag, sig);
+				if (!sig.isHardError() && !sig.isInitiatedByApplication() && !isDown) {
+					isDown = true;
+					log.info("start re-creation of consumer");
+					Channel recreated = null;
+					while (recreated == null) {
+						try {
+							Thread.sleep(2000);
+							recreated = addConsumer(con, withRecovery, null);
+						} catch (InterruptedException | IOException e) {
+							log.warn("consumer re-creation failed, will retry: {}", e.getMessage());
+						}
+					}
+					log.info("consumer re-created");
+				}
 			}
 
 			@Override
@@ -253,7 +301,7 @@ public class RabbitClusterTest {
 					while (recreated == null) {
 						try {
 							Thread.sleep(2000);
-							recreated = addConsumer(con, withRecovery);
+							recreated = addConsumer(con, withRecovery, provokeTimeoutOnMessageCount);
 						} catch (InterruptedException | IOException e) {
 							log.warn("consumer re-creation failed, will retry: {}", e.getMessage());
 						}
@@ -277,7 +325,8 @@ public class RabbitClusterTest {
 				super.handleConsumeOk(consumerTag);
 				log.info("handleConsumeOk for {}", consumerTag);
 			}
-		});
+		};
+		channel.basicConsume(QUEUE, false, CONSUMER_TAG, false, false, Map.of(), consumer);
 		return channel;
 	}
 
@@ -312,7 +361,7 @@ public class RabbitClusterTest {
 								ch.basicPublish(EXCHANGE, "", true, new AMQP.BasicProperties.Builder()
 										.deliveryMode(2)
 										.build(),
-										"test".getBytes());
+										("test-" + publishCounter.get()).getBytes());
 								if (ch.waitForConfirms(1000)) {
 									log.info("publish ack");
 									publishCounter.incrementAndGet();
@@ -328,23 +377,25 @@ public class RabbitClusterTest {
 		ConnectionFactory connectionFactory = new ConnectionFactory();
 		connectionFactory.setPort(NODE_PORTS.get(nodeName));
 		Connection con = connectionFactory.newConnection();
-		((RecoverableConnection) con).addRecoveryListener(new RecoveryListener() {
+		if (con instanceof RecoverableConnection) {
+			((RecoverableConnection) con).addRecoveryListener(new RecoveryListener() {
 
-			@Override
-			public void handleRecoveryStarted(Recoverable recoverable) {
-				log.info("handleRecoveryStarted: {}", recoverable);
-			}
+				@Override
+				public void handleRecoveryStarted(Recoverable recoverable) {
+					log.info("handleRecoveryStarted: {}", recoverable);
+				}
 
-			@Override
-			public void handleRecovery(Recoverable recoverable) {
-				log.info("handleRecovery: {}", recoverable);
-			}
+				@Override
+				public void handleRecovery(Recoverable recoverable) {
+					log.info("handleRecovery: {}", recoverable);
+				}
 
-			@Override
-			public void handleTopologyRecoveryStarted(Recoverable recoverable) {
-				log.info("handleTopologyRecoveryStarted: {}", recoverable);
-			}
-		});
+				@Override
+				public void handleTopologyRecoveryStarted(Recoverable recoverable) {
+					log.info("handleTopologyRecoveryStarted: {}", recoverable);
+				}
+			});
+		}
 		return con;
 	}
 
